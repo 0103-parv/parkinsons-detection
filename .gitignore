@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.joblib
+parkinsons/data/pd_speech_features.csv
+parkinsons/data/_sakar.zip
+parkinsons/data/*.rar
+.venv/
