@@ -80,7 +80,17 @@ not saliency. The fix is a body-saliency prior or semantic tokens.
 
 ## 6. What would move each of these
 
-Real CARE-PD training (fixes 1, 3), a segmentation or saliency prior for raw-pixel
-STTP (fix 4), an on-phone latency profile (fix 5), and a fairness-stratified real
-dataset. See [CLINICAL_SAFETY.md](CLINICAL_SAFETY.md) for the full path to a
-clinically meaningful result.
+Real CARE-PD training (fixes 1, 3), a saliency prior for raw-pixel STTP (fix 4; see
+below), an on-phone latency profile (fix 5), and a fairness-stratified real dataset.
+See [CLINICAL_SAFETY.md](CLINICAL_SAFETY.md) for the full path to a clinically
+meaningful result.
+
+**Motion-priming (the concrete fix for finding 4).** On *video*, a non-circular
+saliency signal is available that raw pixels lack: the person moves while the
+background is (mostly) static, so a per-token temporal-variance (frame-difference)
+score marks the foreground. STTP could then keep the connected component with the
+most motion mass rather than the densest one. We prototyped this but did not ship it,
+because our only bundled real clip has the subject at ~2% of the frame on a beach
+(moving water + a flaky segmentation mask make it a poor, unmeasurable test case). It
+is a well-posed next step: validate it on a full-frame, static-background side-view
+walking clip where recall/drop can be scored reliably.
