@@ -5,3 +5,12 @@ parkinsons/data/pd_speech_features.csv
 parkinsons/data/_sakar.zip
 parkinsons/data/*.rar
 .venv/
+
+# ParkiGait: large / generated / downloaded artifacts
+parkigait/models/*.task
+parkigait/app_static/
+parkigait/app_uploads/
+parkigait/_viz_smoke/
+sample_videos/
+*.mp4
+*.webm

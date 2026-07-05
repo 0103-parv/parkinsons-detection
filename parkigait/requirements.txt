@@ -1,0 +1,14 @@
+# ParkiGait video pipeline — Python 3.11 recommended (MediaPipe/OpenCV wheels).
+# numpy pinned <2 for MediaPipe/OpenCV compatibility.
+numpy<2
+opencv-python
+mediapipe
+scipy
+scikit-learn
+matplotlib
+imageio
+imageio-ffmpeg
+joblib
+flask
+pillow
+pytest

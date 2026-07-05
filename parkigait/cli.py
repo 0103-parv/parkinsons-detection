@@ -1,0 +1,160 @@
+"""ParkiGait command line.
+
+    python -m parkigait scan  path/to/walk.mp4      # scan a real walking video
+    python -m parkigait demo  --severity 0.6         # analyze a synthetic walker
+    python -m parkigait train                        # (re)train the synthetic model
+    python -m parkigait eval  --report               # honest metrics -> RESULTS.md
+    python -m parkigait serve                        # local web app (upload a video)
+    python -m parkigait render --severity 0.6        # render a synthetic walk video
+    python -m parkigait selftest                     # end-to-end smoke test
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+
+
+def _print_report(report) -> None:
+    s = report.summary()
+    print("\n" + "=" * 62)
+    print("  ParkiGait report")
+    print("=" * 62)
+    print(f"  source:            {s['source']}")
+    print(f"  steps detected:    {s['step_count']}")
+    print(f"  signal confidence: {s['feature_confidence']}")
+    print("  --- gait features ---")
+    for k, v in s["features"].items():
+        print(f"    {k:16} {v: .4f}")
+    print("  --- estimate (EXPLORATORY, not a diagnosis) ---")
+    print(f"    P(PD-like motor signs): {s['p_pd']:.3f}")
+    print(f"    severity (0-4, {s['severity_scale']}): {s['severity_0_4']:.2f}")
+    print(f"    label:                  {s['label']}")
+    if s["sttp_keep_fraction"] is not None:
+        print(f"    STTP keep fraction:     {s['sttp_keep_fraction']}")
+    if s["timings_ms"]:
+        print("  --- timings (ms) ---")
+        for k, v in s["timings_ms"].items():
+            print(f"    {k:18} {v}")
+    if s["warnings"]:
+        print("  --- warnings ---")
+        for w in s["warnings"]:
+            print(f"    ! {w}")
+    print("  " + "-" * 60)
+    print(f"  {s['disclaimer']}")
+    print("=" * 62 + "\n")
+
+
+def cmd_scan(args) -> int:
+    from parkigait.pipeline import analyze_video
+    report = analyze_video(args.video, stride=args.stride, max_frames=args.max_frames)
+    _print_report(report)
+    if args.json:
+        print(json.dumps(report.summary(), indent=2))
+    return 0
+
+
+def cmd_demo(args) -> int:
+    from parkigait.pipeline import analyze_synthetic
+    report = analyze_synthetic(severity=args.severity, seed=args.seed)
+    _print_report(report)
+    print(f"  (synthetic walker, TRUE severity={args.severity:.2f} on a 0-1 scale; "
+          f"model severity is on a 0-4 synthetic scale)")
+    return 0
+
+
+def cmd_train(args) -> int:
+    from parkigait.severity import train_synthetic
+    _, cv = train_synthetic()
+    print("Trained synthetic severity model.")
+    print(json.dumps(cv, indent=2))
+    return 0
+
+
+def cmd_eval(args) -> int:
+    from parkigait.eval import run_eval
+    run_eval(write_report=args.report)
+    return 0
+
+
+def cmd_serve(args) -> int:
+    from parkigait.app import run_server
+    run_server(host=args.host, port=args.port)
+    return 0
+
+
+def cmd_render(args) -> int:
+    from parkigait.pose import SyntheticWalker
+    from parkigait.render import render_walk_video
+    pose = SyntheticWalker(args.severity).generate(duration_s=args.seconds)
+    path = render_walk_video(pose, args.out)
+    print(f"wrote {path}")
+    return 0
+
+
+def cmd_selftest(args) -> int:
+    from parkigait.pipeline import analyze_synthetic
+    print("Running end-to-end selftest on synthetic walkers...")
+    ok = True
+    prev_p = None
+    for sev in (0.0, 0.5, 1.0):
+        r = analyze_synthetic(severity=sev, seed=3)
+        p = r.severity.p_pd
+        print(f"  severity {sev:.1f}: P(PD)={p:.3f}  steps={r.features.step_count}  "
+              f"conf={r.features.confidence:.2f}")
+        if prev_p is not None and p < prev_p - 0.15:
+            ok = False  # P(PD) should broadly rise with severity
+        prev_p = p
+    print("SELFTEST:", "PASS" if ok else "CHECK (P(PD) not monotonic — inspect)")
+    return 0 if ok else 1
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="parkigait",
+        description="ParkiGait — RESEARCH PROTOTYPE for video gait analysis. "
+                    "NOT a medical device; not for clinical use.")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sc = sub.add_parser("scan", help="scan a real walking video")
+    sc.add_argument("video")
+    sc.add_argument("--stride", type=int, default=2)
+    sc.add_argument("--max-frames", type=int, default=None, dest="max_frames")
+    sc.add_argument("--json", action="store_true")
+    sc.set_defaults(func=cmd_scan)
+
+    dm = sub.add_parser("demo", help="analyze a synthetic walker")
+    dm.add_argument("--severity", type=float, default=0.5)
+    dm.add_argument("--seed", type=int, default=0)
+    dm.set_defaults(func=cmd_demo)
+
+    tr = sub.add_parser("train", help="(re)train the synthetic severity model")
+    tr.set_defaults(func=cmd_train)
+
+    ev = sub.add_parser("eval", help="honest evaluation on the synthetic cohort")
+    ev.add_argument("--report", action="store_true", help="write RESULTS.md")
+    ev.set_defaults(func=cmd_eval)
+
+    sv = sub.add_parser("serve", help="run the local web app")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=7860)
+    sv.set_defaults(func=cmd_serve)
+
+    rd = sub.add_parser("render", help="render a synthetic walk video")
+    rd.add_argument("--severity", type=float, default=0.5)
+    rd.add_argument("--seconds", type=float, default=8.0)
+    rd.add_argument("--out", default="sample_videos/synthetic_walk.mp4")
+    rd.set_defaults(func=cmd_render)
+
+    st = sub.add_parser("selftest", help="end-to-end smoke test")
+    st.set_defaults(func=cmd_selftest)
+    return p
+
+
+def main(argv=None) -> int:
+    args = build_parser().parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
