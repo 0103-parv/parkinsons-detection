@@ -27,6 +27,8 @@ def _print_report(report) -> None:
     for k, v in s["features"].items():
         print(f"    {k:16} {v: .4f}")
     print("  --- estimate (EXPLORATORY, not a diagnosis) ---")
+    if s.get("out_of_distribution"):
+        print("    ** OUT-OF-DISTRIBUTION: score not meaningful for this input **")
     print(f"    P(PD-like motor signs): {s['p_pd']:.3f}")
     print(f"    severity (0-4, {s['severity_scale']}): {s['severity_0_4']:.2f}")
     print(f"    label:                  {s['label']}")
@@ -74,6 +76,12 @@ def cmd_train(args) -> int:
 def cmd_eval(args) -> int:
     from parkigait.eval import run_eval
     run_eval(write_report=args.report)
+    return 0
+
+
+def cmd_ablation(args) -> int:
+    from parkigait.ablation import run
+    run(write=True)
     return 0
 
 
@@ -134,6 +142,9 @@ def build_parser() -> argparse.ArgumentParser:
     ev = sub.add_parser("eval", help="honest evaluation on the synthetic cohort")
     ev.add_argument("--report", action="store_true", help="write RESULTS.md")
     ev.set_defaults(func=cmd_eval)
+
+    ab = sub.add_parser("ablation", help="ablation & robustness study -> ABLATION.md")
+    ab.set_defaults(func=cmd_ablation)
 
     sv = sub.add_parser("serve", help="run the local web app")
     sv.add_argument("--host", default="127.0.0.1")

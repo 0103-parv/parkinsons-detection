@@ -27,7 +27,25 @@ Then a **verification-gated search** finds that a tiny 3-feature voice panel (`s
 only 32 people. And it **replicates** on a second, independent dataset (Sakar et al. 2018, **252
 people, 752 features**) at **~0.91**.
 
-## What's here
+## ParkiGait — the video gait pipeline (the ISEF edge-VLM project, made real)
+
+**[`parkigait/`](parkigait/)** is a genuinely working, on-device pipeline: a walking
+video → MediaPipe skeleton → STTP topology-preserving token pruning → clinical gait
+features → an *exploratory* motor-sign score, plus LieQ mixed-precision quantization,
+an out-of-distribution guard, a web app, an ablation/robustness study, and honest
+docs. It runs on a laptop CPU (~27 ms/frame, ~364 MB). It is a **research prototype,
+not a medical device** — see [`parkigait/HONEST_STATUS.md`](parkigait/HONEST_STATUS.md),
+[`parkigait/CLINICAL_SAFETY.md`](parkigait/CLINICAL_SAFETY.md), and
+[`parkigait/LIMITATIONS.md`](parkigait/LIMITATIONS.md). Start at
+[`parkigait/README.md`](parkigait/README.md).
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r parkigait/requirements.txt
+python -m parkigait demo --severity 0.6     # or: scan a real video, serve, eval, ablation
+```
+
+## What's here (voice track)
 
 ```
 parkinsons/      the real-data detector (UCI voice; this is the main project)

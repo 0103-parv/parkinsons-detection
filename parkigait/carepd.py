@@ -25,14 +25,15 @@ clinician-rated **UPDRS-gait** score (the gait item of the MDS-UPDRS motor exam)
            arXiv:2510.04312
   Data:    https://huggingface.co/datasets/vida-adl/CARE-PD   (repo_type=dataset)
   Code:    https://github.com/TaatiTeam/CARE-PD
-  Terms:   https://neurips2025.care-pd.ca/terms-of-use   (CC BY-NC 4.0)
+  Terms:   https://neurips2025.care-pd.ca/terms-of-use   (CC BY-NC-ND 4.0; verify)
   Project: https://neurips2025.care-pd.ca/
 
 Access, honestly
 ----------------
 As of the sources above, the Hugging Face dataset is **GATED**: you must be
 logged in, then acknowledge and accept the terms of use on the dataset card
-before you can download it. It is released under **CC BY-NC 4.0** and the authors
+before you can download it. It is released under **CC BY-NC-ND 4.0** (verify on the
+card) and the authors
 require that you cite the CARE-PD paper AND the relevant original cohort papers,
 and never attempt re-identification (GDPR / HIPAA / PIPEDA obligations). Treat it
 as a data-use agreement. **VERIFY the current access status against the dataset
@@ -112,7 +113,8 @@ CAREPD_PAPER = (
     "CARE-PD: A Multi-Site Anonymized Clinical Dataset for Parkinson's Disease "
     "Gait Assessment (NeurIPS 2025 Datasets & Benchmarks; arXiv:2510.04312)"
 )
-CAREPD_LICENSE = "CC BY-NC 4.0 (non-commercial); read the terms of use before use"
+CAREPD_LICENSE = ("CC BY-NC-ND 4.0 (non-commercial, no-derivatives) per the HF "
+                  "dataset card — VERIFY current terms before use")
 
 # The 9 harmonized cohorts (per the GitHub repo layout). VERIFY against the card.
 CAREPD_COHORTS = (
@@ -542,13 +544,13 @@ def train_severity_from_carepd(root: str, *, cohorts: Optional[list[str]] = None
         if updrs is None:
             continue
         try:
-            from parkigait.gaitfeat import extract_gait_features
+            from parkigait.gaitfeat import extract_features
         except Exception as exc:
             raise CAREPDNotAvailable(
                 "CARE-PD data is present, but the gait-feature extractor "
                 f"(parkigait.gaitfeat) could not be imported: {exc}. Cannot train "
                 "without it. This is a wiring error, not fabricated data.") from exc
-        feats = extract_gait_features(pose_seq).as_vector()
+        feats = extract_features(pose_seq).as_vector()
         by_subject.setdefault(meta["subject_id"], []).append((feats, int(updrs)))
         n_labelled += 1
 

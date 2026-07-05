@@ -9,28 +9,28 @@ on this machine at run time. **None is a clinical result.** Correlation is again
 
 | Metric | Value | What it is |
 |---|---|---|
-| Severity model held-out CV | AUC 1.000, r 0.999 | record-level CV, synthetic cohort |
-| Fresh hold-out severity correlation | Pearson r **0.999** | predicted vs TRUE **synthetic** severity, distinct-seed hold-out (n=40) |
-| Fresh hold-out control/PD AUC | 1.000 | synthetic classification |
-| STTP body recall | **0.990** | fraction of body tokens preserved (token graph) |
+| Severity model held-out CV | AUC 0.855, r 0.997 | record-level CV, synthetic cohort |
+| Fresh hold-out severity correlation | Pearson r **0.998** | predicted vs TRUE **synthetic** severity, distinct-seed hold-out (n=40) |
+| Fresh hold-out control/PD AUC | 0.943 | synthetic classification |
+| STTP body recall | **1.000** | fraction of body tokens preserved (token graph) |
 | STTP background drop | **1.000** | fraction of background tokens pruned |
-| STTP keep fraction | 0.459 | fraction of all tokens kept |
-| LieQ quantization | 9.73× compression, 103% accuracy retained (fp32 0.967 → mixed 1.000) | small demo model, synthetic data |
-| Latency — synthetic analysis | 0.009 ms/frame | pose→features→severity, CPU |
-| Latency — MediaPipe on real video | 28.0 ms/frame | BlazePose pose extraction, CPU |
-| Peak resident memory | 364 MB | whole process; < 4 GB edge target met |
+| STTP keep fraction | 0.472 | fraction of all tokens kept |
+| LieQ quantization | 11.27× compression, 100% accuracy retained (fp32 0.733 → mixed 0.733) | small demo model, synthetic data |
+| Latency — synthetic analysis | 0.008 ms/frame | pose→features→severity, CPU |
+| Latency — MediaPipe on real video | 24.5 ms/frame | BlazePose pose extraction, CPU |
+| Peak resident memory | 365 MB | whole process; < 4 GB edge target met |
 
 ## Mean gait features, synthetic control vs PD hold-out
 
 | feature | control (mean) | PD (mean) |
 |---|---|---|
-| gait_speed | 0.216 | 0.155 |
-| cadence | 110.062 | 99.562 |
-| stride_length | 0.236 | 0.186 |
-| stride_time_var | 0.027 | 0.107 |
-| asymmetry | 0.035 | 0.117 |
-| arm_swing | 0.087 | 0.059 |
-| fog_index | 1.623 | 3.594 |
+| gait_speed | 0.206 | 0.165 |
+| cadence | 107.188 | 101.250 |
+| stride_length | 0.230 | 0.194 |
+| stride_time_var | 0.032 | 0.084 |
+| asymmetry | 0.047 | 0.106 |
+| arm_swing | 0.085 | 0.065 |
+| fog_index | 3.963 | 7.724 |
 
 ## Honest reading
 

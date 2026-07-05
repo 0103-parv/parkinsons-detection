@@ -214,6 +214,8 @@ class SeverityEstimate:
     label: str
     calibrated_on: str = ""
     contributions: dict = field(default_factory=dict)
+    ood: bool = False            # input far outside the training distribution
+    ood_distance: float = 0.0    # Mahalanobis-ish distance to the training mean
 
     @property
     def is_calibrated(self) -> bool:
@@ -243,6 +245,7 @@ class PipelineReport:
             "severity_0_4": round(self.severity.severity, 2),
             "severity_scale": self.severity.calibrated_on or "uncalibrated/synthetic",
             "label": self.severity.label,
+            "out_of_distribution": self.severity.ood,
             "sttp_keep_fraction": (
                 round(self.sttp.keep_fraction, 3) if self.sttp else None),
             "timings_ms": {k: round(v, 1) for k, v in self.timings_ms.items()},

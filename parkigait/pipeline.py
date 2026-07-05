@@ -66,6 +66,11 @@ def analyze_pose(pose: PoseSequence, run_sttp: bool = True,
     severity = model.predict(features)
     timings["severity_ms"] = (_now() - t0) * 1000.0
 
+    if severity.ood:
+        warnings.append(
+            "OUT-OF-DISTRIBUTION: these gait features are unlike anything in the "
+            "(synthetic) training set, so P(PD) and severity are NOT meaningful here. "
+            "This is expected on real video until the model is trained on real data.")
     if features.confidence < 0.35:
         warnings.append("Low signal quality: few clean walking cycles detected; "
                         "the estimate is unreliable.")

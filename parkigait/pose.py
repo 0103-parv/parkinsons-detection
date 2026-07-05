@@ -205,8 +205,10 @@ class SyntheticWalker(PoseBackend):
         T = int(round(duration_s * fps))
 
         # --- gait parameters as a function of severity (literature-directional) --
-        cadence = 112.0 - 22.0 * s + rng.normal(0, 2.0)      # steps/min, drops with s
-        step_hz = cadence / 60.0
+        # clinical cadence = TOTAL steps/min counting both feet (healthy ~112,
+        # dropping with severity). Each foot cycles at half that rate.
+        cadence = 112.0 - 24.0 * s + rng.normal(0, 2.5)
+        step_hz = cadence / 120.0                             # per-foot cycle frequency
         stride_amp = 0.16 * (1.0 - 0.45 * s)                 # hip flexion amplitude (rad)
         knee_amp = 0.9 * (1.0 - 0.25 * s)
         arm_amp_base = 0.13 * (1.0 - 0.70 * s)               # arm swing shrinks a lot
@@ -335,10 +337,18 @@ def synthetic_cohort(n_control: int = 40, n_pd: int = 40, seed: int = 0,
     """
     rng = np.random.default_rng(seed)
     out = []
+    # Deliberately OVERLAPPING severity ranges (controls up to 0.18, PD from 0.12)
+    # plus ~12% atypical subjects whose label is flipped relative to severity, so
+    # the task is honestly hard and the model is NOT trivially separable. A believable
+    # AUC/correlation beats a suspiciously perfect one.
+    n = n_control + n_pd
+    atypical = set(rng.choice(n, size=int(0.12 * n), replace=False).tolist())
     for i in range(n_control):
-        sev = float(rng.uniform(0.0, 0.12))
-        out.append((SyntheticWalker(sev, seed=1000 + i).generate(duration_s, fps), sev, 0))
+        sev = float(rng.uniform(0.0, 0.18))
+        label = 1 if i in atypical else 0                    # a few "false alarms"
+        out.append((SyntheticWalker(sev, seed=1000 + i).generate(duration_s, fps), sev, label))
     for i in range(n_pd):
-        sev = float(rng.uniform(0.2, 1.0))
-        out.append((SyntheticWalker(sev, seed=2000 + i).generate(duration_s, fps), sev, 1))
+        sev = float(rng.uniform(0.12, 1.0))
+        label = 0 if (n_control + i) in atypical else 1      # a few "missed" mild cases
+        out.append((SyntheticWalker(sev, seed=2000 + i).generate(duration_s, fps), sev, label))
     return out

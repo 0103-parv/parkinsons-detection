@@ -125,6 +125,26 @@ def test_carepd_not_available_raises():
 
 
 # --------------------------------------------------------------------------- #
+# OOD guard                                                                   #
+# --------------------------------------------------------------------------- #
+def test_ood_guard_flags_alien_input():
+    from parkigait.gaitfeat import extract_features
+    from parkigait.severity import train_synthetic
+    from parkigait.types import GaitFeatures
+    model, _ = train_synthetic(n_control=30, n_pd=30, seed=0, save=False)
+    # an in-distribution synthetic walker is NOT ood
+    normal = extract_features(SyntheticWalker(0.3, seed=7).generate())
+    assert model.predict(normal).ood is False
+    # a wildly out-of-range feature vector IS ood and says so
+    alien = GaitFeatures(gait_speed=9.0, cadence=400.0, stride_length=8.0,
+                         stride_time_var=5.0, asymmetry=0.99, arm_swing=9.0,
+                         fog_index=500.0, step_count=20, confidence=1.0)
+    out = model.predict(alien)
+    assert out.ood is True
+    assert "out-of-distribution" in out.label.lower()
+
+
+# --------------------------------------------------------------------------- #
 # render                                                                      #
 # --------------------------------------------------------------------------- #
 def test_render_walk_video(tmp_path):
@@ -142,3 +162,17 @@ def test_render_walk_video(tmp_path):
 def test_cli_selftest():
     from parkigait.cli import main
     assert main(["selftest"]) == 0
+
+
+# --------------------------------------------------------------------------- #
+# ablation / robustness                                                       #
+# --------------------------------------------------------------------------- #
+def test_ablation_background_rejection():
+    from parkigait.ablation import stt_background_rejection
+    rows = stt_background_rejection(n_backgrounds=(30, 120), trials=2)
+    assert len(rows) == 2
+    for r in rows:
+        assert 0.0 <= r["bg_rejection"] <= 1.0
+        assert abs(r["bg_rejection"] + r["bg_survival"] - 1.0) < 1e-6
+    # at a modest injection count STTP should reject the great majority of background
+    assert rows[0]["bg_rejection"] >= 0.8

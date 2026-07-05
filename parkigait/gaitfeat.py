@@ -27,15 +27,12 @@ Design notes / conventions used throughout
 
 A note on the cadence convention
 --------------------------------
-Real clinical cadence counts heel strikes of *both* feet per minute. On the
-synthetic side-view bench each foot completes one gait cycle per phase cycle, and
-the generator's ``cadence_target`` is expressed as a *per-foot* cycle rate. To
-stay consistent with that ground truth (and because it is the honest,
-reproducible thing to do), ``cadence`` here is the **mean per-foot event rate**
-(events/min averaged over the two feet); ``cadence_left`` / ``cadence_right`` are
-the two per-foot rates. On real translating video the same detector still yields
-per-foot heel-strike rates; a caller wanting the both-feet convention can double
-this. This choice is documented rather than hidden.
+``cadence`` here is **clinical cadence: total heel strikes of BOTH feet per
+minute** (``cad_left + cad_right``), which is how cadence is reported clinically
+(healthy walking ≈ 100–120). The synthetic generator's ``cadence_target`` is also
+expressed as total steps/min (each foot cycles at half that rate), so the recovered
+``cadence`` is directly comparable to it. ``cadence_left`` / ``cadence_right`` hold
+the individual per-foot event rates for asymmetry analysis.
 
 The Freeze-of-Gait index
 ------------------------
@@ -250,10 +247,10 @@ def extract_features(pose: PoseSequence) -> GaitFeatures:
     n_left, n_right = len(l_events), len(r_events)
     step_count = n_left + n_right
 
-    # per-foot cadence (events/min); overall cadence = mean of the two feet
+    # per-foot event rate (events/min); clinical cadence = TOTAL steps/min (both feet)
     cad_left = n_left / dur * 60.0
     cad_right = n_right / dur * 60.0
-    cadence = 0.5 * (cad_left + cad_right)
+    cadence = float(cad_left + cad_right)
 
     # stride time: consecutive same-foot event intervals (seconds)
     stride_times = []

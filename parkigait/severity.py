@@ -29,29 +29,43 @@ class SeverityModel:
     """A fitted (classifier + regressor) pair over standardized gait features."""
 
     def __init__(self, clf, reg, mu: np.ndarray, sd: np.ndarray,
-                 calibrated_on: str = "synthetic", cv_metrics: Optional[dict] = None):
+                 calibrated_on: str = "synthetic", cv_metrics: Optional[dict] = None,
+                 ood_threshold: float = float("inf")):
         self.clf = clf
         self.reg = reg
         self.mu = np.asarray(mu, dtype=np.float64)
         self.sd = np.asarray(sd, dtype=np.float64)
         self.calibrated_on = calibrated_on
         self.cv_metrics = cv_metrics or {}
+        # inputs whose standardized distance to the training mean exceeds this are
+        # OUT OF DISTRIBUTION: the model has never seen anything like them, so its
+        # probability is meaningless and we say so rather than emit a confident number.
+        self.ood_threshold = float(ood_threshold)
 
     # -- inference ---------------------------------------------------------
     def _standardize(self, x: np.ndarray) -> np.ndarray:
         return (x - self.mu) / self.sd
 
+    def _distance(self, xs: np.ndarray) -> float:
+        # diagonal Mahalanobis distance (features already standardized by train sd)
+        return float(np.sqrt(np.sum(xs.ravel() ** 2)))
+
     def predict(self, feats: GaitFeatures) -> SeverityEstimate:
         x = feats.as_vector()
         xs = self._standardize(x).reshape(1, -1)
+        dist = self._distance(xs)
+        is_ood = dist > self.ood_threshold
         p = float(self.clf.predict_proba(xs)[0, 1])
         sev = float(np.clip(self.reg.predict(xs)[0], 0.0, 4.0))
         # signed per-feature contribution to the log-odds (explainability)
         coef = self.clf.coef_.ravel()
         contrib = {name: float(coef[i] * xs[0, i])
                    for i, name in enumerate(GAIT_FEATURE_ORDER)}
-        # feature confidence gates the strength of any statement we make
-        if feats.confidence < 0.35:
+        # OOD and low confidence both suppress any confident statement
+        if is_ood:
+            label = ("out-of-distribution — unlike the training data, estimate "
+                     "unreliable")
+        elif feats.confidence < 0.35:
             label = "inconclusive (low signal quality)"
         elif p < 0.5:
             label = "control-like gait (exploratory)"
@@ -59,22 +73,24 @@ class SeverityModel:
             label = "possible PD motor signs (exploratory, not a diagnosis)"
         return SeverityEstimate(
             p_pd=p, severity=sev, label=label,
-            calibrated_on=self.calibrated_on, contributions=contrib)
+            calibrated_on=self.calibrated_on, contributions=contrib,
+            ood=is_ood, ood_distance=dist)
 
     # -- persistence -------------------------------------------------------
     def save(self, path: Path = MODEL_PATH) -> None:
         import joblib
         path.parent.mkdir(parents=True, exist_ok=True)
         joblib.dump({"clf": self.clf, "reg": self.reg, "mu": self.mu, "sd": self.sd,
-                     "calibrated_on": self.calibrated_on, "cv_metrics": self.cv_metrics},
-                    path)
+                     "calibrated_on": self.calibrated_on, "cv_metrics": self.cv_metrics,
+                     "ood_threshold": self.ood_threshold}, path)
 
     @classmethod
     def load(cls, path: Path = MODEL_PATH) -> "SeverityModel":
         import joblib
         d = joblib.load(path)
         return cls(d["clf"], d["reg"], d["mu"], d["sd"],
-                   d.get("calibrated_on", "synthetic"), d.get("cv_metrics", {}))
+                   d.get("calibrated_on", "synthetic"), d.get("cv_metrics", {}),
+                   d.get("ood_threshold", float("inf")))
 
 
 # --------------------------------------------------------------------------- #
@@ -147,7 +163,14 @@ def train_from_features(X: np.ndarray, y_label: np.ndarray, y_sev: np.ndarray,
     Xs = (X - mu) / sd
     clf = LR(max_iter=1000, C=1.0).fit(Xs, y_label)
     reg = RG(alpha=1.0).fit(Xs, y_sev)
-    model = SeverityModel(clf, reg, mu, sd, calibrated_on=calibrated_on, cv_metrics=cv)
+    # OOD threshold: a generous margin past the farthest training point, so only
+    # genuinely alien inputs (e.g. a real video whose features no training subject
+    # resembles) trip it — not ordinary in-range variation.
+    train_dist = np.sqrt((Xs ** 2).sum(axis=1))
+    ood_threshold = float(np.quantile(train_dist, 0.99) * 1.25 + 1e-6)
+    cv["ood_threshold"] = ood_threshold
+    model = SeverityModel(clf, reg, mu, sd, calibrated_on=calibrated_on, cv_metrics=cv,
+                          ood_threshold=ood_threshold)
     return model, cv
 
 

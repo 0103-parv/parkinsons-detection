@@ -27,15 +27,18 @@ this machine (CARE-PD is gated). The point is a real, honest method.
 
 | Metric | Measured value | What it is |
 |---|---|---|
-| MediaPipe pose on real video | **~28 ms/frame** (CPU) | meets the <50 ms edge target, measured |
+| MediaPipe pose on real video | **~27 ms/frame** (CPU) | meets the <50 ms edge target, measured |
 | Peak memory | **~364 MB** | meets the <4 GB edge target, measured |
-| STTP body recall / background drop | **0.99 / 1.00** | on the keypoint token-graph demo |
-| LieQ quantization | **9.7× smaller**, ~100% acc retained | small demo model, synthetic data |
+| STTP body recall / background drop | **~1.00 / 1.00** | on the keypoint token-graph |
+| LieQ quantization | **~11× smaller**, ~100% acc retained | small demo model, synthetic data |
+| Control-vs-PD AUC | **~0.86–0.94 (synthetic)** | harder overlapping cohort, **not** clinical |
 | Severity correlation | r ≈ 0.99 **(synthetic)** | method demo, **not** clinical |
 
-The real-video path also does the honest thing on a bad clip: on a video where the
-legs aren't visible it returns **"inconclusive (low signal quality)"** with a
-warning, instead of a confident score.
+The pipeline does the honest thing on hard inputs: it returns **"inconclusive"** on
+low-quality clips and **"out-of-distribution — unreliable"** when the gait is unlike
+anything it was trained on, instead of a confident wrong answer. Real-video findings
+(sim-to-real gap, confounding, OOD, raw-pixel STTP limits) are written up in
+[LIMITATIONS.md](LIMITATIONS.md) — characterizing failure modes is part of the point.
 
 ## Run it
 
@@ -71,6 +74,7 @@ parkigait/
   carepd.py       CARE-PD loader — ready for real data, FABRICATES NOTHING
                   (raises a clear "gated dataset, request access" error)
   pipeline.py     end-to-end orchestration → PipelineReport
+  realframe.py    STTP on REAL RGB frames (honest, non-separable stress test)
   render.py       render a synthetic walker to an .mp4
   viz.py          skeleton / gait-signal / STTP / severity figures
   app.py          local Flask web app (upload a video, see the report)

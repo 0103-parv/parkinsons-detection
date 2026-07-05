@@ -92,9 +92,18 @@ def _render_report_html(report, extra_media: list[tuple[str, str]]) -> str:
         f"<h2>{html.escape(title)}</h2><img src='{url}'>" for title, url in extra_media)
     timings = "".join(f"<tr><td>{k}</td><td>{v} ms</td></tr>"
                       for k, v in s["timings_ms"].items())
+    ood_html = ""
+    if s.get("out_of_distribution"):
+        ood_html = (
+            "<div style='background:#8a5a00;color:#fff;padding:10px 14px;"
+            "border-radius:8px;font-weight:600;margin-bottom:12px'>OUT-OF-DISTRIBUTION"
+            " — these gait features are unlike the (synthetic) training data, so the "
+            "score below is NOT meaningful. Expected on real video until trained on "
+            "real data.</div>")
     body = f"""
     <h1>Report</h1>
     <p class='muted'>source: {html.escape(str(s['source']))}</p>
+    {ood_html}
     <div class='card'>
       <h2>Exploratory estimate (NOT a diagnosis)</h2>
       <table>
