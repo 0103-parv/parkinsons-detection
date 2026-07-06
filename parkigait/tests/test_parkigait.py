@@ -165,6 +165,26 @@ def test_cli_selftest():
 
 
 # --------------------------------------------------------------------------- #
+# clinical-grade stats (bootstrap CI, operating point) — synthetic, no data   #
+# --------------------------------------------------------------------------- #
+def test_clinical_stats():
+    from parkigait.clinical_eval import (operating_point, subject_bootstrap_ci,
+                                         threshold_for_sensitivity, _auc)
+    rng = np.random.default_rng(0)
+    # a signal: score correlates with label; 40 "subjects" x 10 samples
+    groups = np.repeat(np.arange(40), 10)
+    y = rng.integers(0, 2, size=400)
+    score = y * 0.6 + rng.normal(0, 0.4, size=400)  # informative score
+    m, lo, hi = subject_bootstrap_ci(lambda i: _auc(y[i], score[i]), groups, n_boot=200)
+    assert lo <= m <= hi and hi - lo > 0            # a real interval
+    assert m > 0.7                                   # informative -> good AUC
+    thr = threshold_for_sensitivity(y, score, target=0.9)
+    op = operating_point(y, score, thr)
+    assert op["sensitivity"] >= 0.85                 # meets the screening target
+    assert 0 <= op["specificity"] <= 1
+
+
+# --------------------------------------------------------------------------- #
 # SMPL forward kinematics (canonical skeleton, licensed-model-free)           #
 # --------------------------------------------------------------------------- #
 def test_smpl_fk_zero_pose_is_rest():

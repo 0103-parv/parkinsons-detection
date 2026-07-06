@@ -61,11 +61,15 @@ route the right patients to a neurologist sooner, and helps track gait over time
 
 | Metric | Value |
 |---|---|
-| Abnormal-gait detection AUC | **0.86** pooled (0.87 best cohort), ~79% sens/spec |
-| Severity correlation (UPDRS-gait) | r ≈ 0.70, r² ≈ 0.49 (0.76–0.78 per-subject) |
-| Leakage check | permutation AUC 0.51 / r 0.05; independent adversarial audit: pass |
+| Abnormal-gait detection AUC | **0.86 (95% CI 0.82–0.90)**; screening point 90% sens / 59% spec |
+| Sensitivity by severity | mild (UPDRS 1) 87%, moderate 96%, severe 100% |
+| Severity correlation (UPDRS-gait) | r ≈ 0.70 (95% CI 0.61–0.77), r² ≈ 0.49 |
+| Leakage check | permutation AUC ≈ 0.5 / r 0.05; independent adversarial audit: pass |
 | Latency / memory | ~27 ms/frame, ~364 MB, CPU-only |
-| Training data | CARE-PD, 110 UPDRS-labelled subjects, ~2953 walks |
+| Training data | CARE-PD, 110 UPDRS-labelled patients, ~2953 walks |
+
+Full clinical reporting (ROC, calibration, CIs, feature importance) in
+[`CLINICAL_EVAL.md`](CLINICAL_EVAL.md) and [`MODEL_CARD.md`](MODEL_CARD.md).
 
 ## 7. Roadmap
 

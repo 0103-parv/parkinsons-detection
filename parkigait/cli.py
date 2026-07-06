@@ -112,6 +112,12 @@ def cmd_carepd_rich(args) -> int:
     return 0
 
 
+def cmd_clinical_eval(args) -> int:
+    from parkigait.clinical_eval import run
+    run(root=args.root, permute=args.permute, n_perm=args.n_perm)
+    return 0
+
+
 def cmd_serve(args) -> int:
     from parkigait.app import run_server
     run_server(host=args.host, port=args.port)
@@ -187,6 +193,13 @@ def build_parser() -> argparse.ArgumentParser:
     cr.add_argument("--root", default="data/CARE-PD")
     cr.add_argument("--cohorts", default=None)
     cr.set_defaults(func=cmd_carepd_rich)
+
+    ce = sub.add_parser("clinical-eval",
+                        help="clinical-grade eval (CIs, ROC, calibration, importance) -> CLINICAL_EVAL.md")
+    ce.add_argument("--root", default="data/CARE-PD")
+    ce.add_argument("--permute", action="store_true", help="also run the permutation p-value (slow)")
+    ce.add_argument("--n-perm", type=int, default=200, dest="n_perm")
+    ce.set_defaults(func=cmd_clinical_eval)
 
     sv = sub.add_parser("serve", help="run the local web app")
     sv.add_argument("--host", default="127.0.0.1")

@@ -41,9 +41,14 @@ walks, subject-level cross-validation). With 25 clinically-grounded 3D gait feat
 (real gait speed, trunk flexion, joint ROM, variability, asymmetry) the honest held-
 out correlation is **r ≈ 0.70 (r² ≈ 0.49)**, 0.75 on the largest cohort, and 0.76–0.78
 when predictions are aggregated per subject. Verified leakage-free by a permutation
-control (shuffled r ≈ 0.05) and an independent adversarial audit. It **plateaus at
-~0.70** — the honest ceiling for gait-only prediction, not the poster's un-measured
->0.90. `python -m parkigait carepd-rich`.
+control (shuffled r ≈ 0.05) and an independent adversarial audit.
+
+Clinical-grade reporting — **95% confidence intervals, ROC, calibration, feature
+importance, sensitivity-by-severity, permutation p-value** — is in
+[`CLINICAL_EVAL.md`](CLINICAL_EVAL.md), [`MODEL_CARD.md`](MODEL_CARD.md), and
+`figures/clinical_eval.png`. Detection **AUC 0.86 (95% CI 0.82–0.90)**; screening point
+90% sensitivity / 59% specificity; catches 87% of even mild cases.
+`python -m parkigait clinical-eval`.
 
 The pipeline does the honest thing on hard inputs: it returns **"inconclusive"** on
 low-quality clips and **"out-of-distribution — unreliable"** when the gait is unlike

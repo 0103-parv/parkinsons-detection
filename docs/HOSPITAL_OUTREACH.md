@@ -62,14 +62,20 @@ and a clinic visit, and cloud video raises privacy concerns. A private, low cost
 could help route patients to a neurologist sooner and track gait over time.
 
 *Current results (measured on the public CARE-PD dataset, 110 patients with clinician UPDRS gait
-scores, strict subject level cross validation):*
+scores, strict subject level cross validation, 95 percent confidence intervals by patient level
+bootstrap):*
 
 | Task | Result |
 |---|---|
-| Detect impaired gait (screening) | area under the curve 0.86, about 79 percent sensitivity and specificity |
-| Estimate severity (harder) | correlation 0.70 with clinician UPDRS gait |
-| Leakage check | passes a label permutation control and an independent audit |
+| Detect impaired gait (screening) | area under the curve 0.86 (95 percent CI 0.82 to 0.90) |
+| Screening operating point | sensitivity 0.90, specificity 0.59, and it flags 87 percent of even mild cases |
+| Estimate severity (harder) | correlation 0.70 (95 percent CI 0.61 to 0.77) with clinician UPDRS gait |
+| Leakage check | passes a label permutation test and an independent adversarial audit |
 | Speed and memory | about 27 ms per frame, under 400 MB, on a laptop CPU |
+
+*What drives it.* The most important feature is walking speed, followed by stride length and joint
+range of motion, which are the same signs a clinician looks for. Full reporting, including a
+receiver operating characteristic curve and a calibration plot, is in the model card.
 
 *What it is not.* Not a diagnostic device. Not a replacement for a clinician or the standard exam.
 Not ready for any patient care decision. It is a research and screening aid.
