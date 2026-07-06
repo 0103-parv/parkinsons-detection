@@ -33,10 +33,13 @@ skeleton (an approximation; the licensed SMPL body model would give exact joints
 
 **Results (measured; real-data, synthetic, and system metrics as labelled).**
 Trained on the **real CARE-PD dataset** (110 UPDRS-gait-labelled subjects, ~2953
-walks) with subject-level cross-validation, the model reached a held-out Pearson
-correlation with clinician-rated UPDRS-gait of **r ≈ 0.53 pooled and ≈ 0.61 on the
-largest cohort** — a real, honest result far below both the synthetic method-demo
-(r ≈ 0.99) and any ">0.90" claim. Pose extraction ran at **~27 ms/frame** on CPU
+walks) with 25 clinically-grounded 3D gait features and subject-level cross-
+validation, the model reached a held-out Pearson correlation with clinician-rated
+UPDRS-gait of **r ≈ 0.70 (r² ≈ 0.49) pooled and ≈ 0.75 on the largest cohort**
+(0.76–0.78 with per-subject aggregation), verified leakage-free by a label-permutation
+control (shuffled r ≈ 0.05) and an independent adversarial audit — a strong, honest
+result that plateaus at ~0.70, still below the synthetic method-demo (r ≈ 0.99) and
+any ">0.90" claim. Pose extraction ran at **~27 ms/frame** on CPU
 (under a 50 ms/frame target) with a **~364 MB** footprint (under 4 GB). On the pose
 keypoint graph, STTP preserved **99–100%** of body tokens while dropping **100%** of
 injected background tokens; on raw RGB frames plain connectivity did **not** isolate

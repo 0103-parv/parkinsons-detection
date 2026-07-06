@@ -6,30 +6,66 @@ labels** and **subject-level cross-validation** (no subject in both train and te
 
 Reproduce:
 ```bash
-python -m parkigait carepd-train --root data/CARE-PD --joint-source canonical_fk
+python -m parkigait carepd-rich    # rich 25-feature clinical model (best)
+python -m parkigait carepd-train   # simple 7-feature baseline
 ```
 
 ## The numbers (measured, subject-level CV, held-out)
 
-| Cohort | Subjects | Labelled walks | Held-out Pearson r | CV MAE | baseline MAE* |
-|---|---|---|---|---|---|
-| **PD-GaM** | 30 | 1701 | **0.61** | 0.50 | 0.67 |
-| BMCLab | 23 | 781 | 0.38 | 0.55 | 0.68 |
-| 3DGait | 43 | 90 | 0.31 | 0.70 | 0.70 |
-| T-SDU-PD | 14 | 381 | 0.15 | 0.68 | 0.71 |
-| **Pooled** | 110 | 2953 | **0.53** | 0.57 | 0.68 |
+Two feature sets, both evaluated identically (subject-level GroupKFold, per-fold
+standardization). The **rich clinical features** (25 biomarkers from the 3D SMPL
+pose + real gait speed from the pelvis translation) substantially beat the simple
+7-feature 2D baseline:
 
-\* baseline = MAE of always predicting the mean UPDRS-gait label. Beating it means
-the gait features carry real signal about the score.
+| Cohort | Walks | Simple (7 feats) r | **Rich (25 feats) r** | rich r² |
+|---|---|---|---|---|
+| **PD-GaM** | 1701 | 0.61 | **0.75** | 0.57 |
+| 3DGait | 90 | 0.31 | **0.69** | 0.48 |
+| BMCLab | 781 | 0.38 | **0.61** | 0.37 |
+| T-SDU-PD | 381 | 0.15 | **0.36** | 0.13 |
+| **Pooled** | 2953 | 0.53 | **0.70** | **0.49** |
+
+**Pooled metrics (random forest, subject-level CV):** held-out **r = 0.698, r² = 0.49,
+R² = 0.49**, MAE 0.434 vs. predict-mean baseline 0.682. Ridge 0.674, grad-boost 0.695.
+
+**Subject-aggregated (rank patients by severity):** averaging a subject's held-out
+predictions gives **r = 0.76–0.78** (r² ≈ 0.58–0.61; grad-boost 0.778) — a legitimate,
+higher subject-level framing that denoises walk-to-walk variation. Still not leakage:
+each subject's predictions come only from folds where that subject was held out.
+
+### The signal ceiling (why it doesn't go to 0.90)
+
+We tried to push it higher and it **plateaus at ~0.70**: adding 12 more biomechanical
+features (37 total) did **not** beat the base 25 (best 37-feature r = 0.692). That is
+the honest ceiling for gait-only UPDRS prediction with these (approximate) joints — in
+line with published gait-vs-UPDRS studies. Getting meaningfully past it needs exact
+SMPL joints (licensed) or clinical inputs beyond gait, **not** feature-tweaking.
+
+### The leakage check (this is what makes it trustworthy)
+
+**Permutation control: shuffle the labels, re-run the whole subject-level CV → held-
+out r = +0.05** (≈ 0). If the pipeline were leaking (e.g. a subject in both train and
+test, or fitting the scaler on test data), shuffled labels would still score high.
+They don't — so the r ≈ 0.70 is real generalization signal, not an artifact.
+
+**Robustness cross-check.** The *dishonest* walk-level split (subjects leaking across
+folds) scores only r = 0.73 — barely above the honest subject-level 0.70. A model that
+was memorizing subjects would show a large gap; a ~0.03 gap means the signal genuinely
+generalizes to new people. (An independent adversarial audit reproduced every number,
+ran the permutation control over 10 seeds, and empirically ruled out a cohort-mean
+confound — a cohort-only predictor scores just 0.075 under subject-level CV.)
 
 ## Honest reading
 
-- **This is a real, positive result.** On the largest cohort (PD-GaM) the held-out
-  correlation with UPDRS-gait is **r ≈ 0.61**, and pooled across 110 subjects it is
-  **r ≈ 0.53**, beating the predict-the-mean baseline on 3 of 4 cohorts and pooled.
-- **It is far below the synthetic demo (r ≈ 0.99) and the poster's claimed >0.90** —
-  which were never real. This ~0.5 is what an honestly-validated gait-only model
-  gets on real Parkinson's data. That is the number to report.
+- **This is a strong, real result:** held-out **r ≈ 0.70 pooled, 0.75 on the largest
+  cohort (PD-GaM)**, correlating a gait-only model with clinician-rated UPDRS-gait,
+  with subject-level validation and a passing permutation control. That is in the
+  range published gait-vs-UPDRS studies report.
+- **It is still NOT >0.90.** r ≈ 0.70 is the honest ceiling of this approach; the
+  poster's >0.90 and the synthetic demo's 0.99 are not real numbers. Report 0.70.
+- The features are clinically grounded and directional per the PD literature
+  (gait speed 0.91→0.08 across UPDRS 0→3; trunk flexion 0.18→0.47; foot clearance
+  and knee ROM collapse at severe; freezing index rises).
 - **Two caveats keep it honest:**
   1. **Approximate joints.** We use canonical-skeleton forward kinematics on the
      real SMPL pose rotations (`smpl_fk.py`), NOT the licensed SMPL body model.

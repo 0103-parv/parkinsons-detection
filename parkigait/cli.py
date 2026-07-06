@@ -105,6 +105,13 @@ def cmd_carepd_train(args) -> int:
     return 0
 
 
+def cmd_carepd_rich(args) -> int:
+    from parkigait.carepd_rich import run
+    cohorts = args.cohorts.split(",") if args.cohorts else None
+    run(root=args.root, cohorts=cohorts)
+    return 0
+
+
 def cmd_serve(args) -> int:
     from parkigait.app import run_server
     run_server(host=args.host, port=args.port)
@@ -174,6 +181,12 @@ def build_parser() -> argparse.ArgumentParser:
     ct.add_argument("--splits", type=int, default=5)
     ct.add_argument("--seed", type=int, default=0)
     ct.set_defaults(func=cmd_carepd_train)
+
+    cr = sub.add_parser("carepd-rich",
+                        help="rich 25-feature clinical model on CARE-PD (best accuracy)")
+    cr.add_argument("--root", default="data/CARE-PD")
+    cr.add_argument("--cohorts", default=None)
+    cr.set_defaults(func=cmd_carepd_rich)
 
     sv = sub.add_parser("serve", help="run the local web app")
     sv.add_argument("--host", default="127.0.0.1")

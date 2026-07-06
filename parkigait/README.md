@@ -33,12 +33,16 @@ this machine (CARE-PD is gated). The point is a real, honest method.
 | LieQ quantization | **~11× smaller**, ~100% acc retained | small demo model, synthetic data |
 | Control-vs-PD AUC | **~0.86–0.94 (synthetic)** | harder overlapping cohort, **not** clinical |
 | Severity correlation (synthetic) | r ≈ 0.99 | method demo, **not** clinical |
-| **UPDRS correlation (REAL CARE-PD)** | **r ≈ 0.53 pooled, 0.61 best cohort** | real labels, subject-level CV — see [CAREPD_RESULTS.md](CAREPD_RESULTS.md) |
+| **UPDRS correlation (REAL CARE-PD)** | **r ≈ 0.70 / r² ≈ 0.49 pooled; 0.75 best cohort; 0.76–0.78 subject-agg** | real labels, subject-level CV, 25 clinical features — [CAREPD_RESULTS.md](CAREPD_RESULTS.md) |
 
-The project is now **trained on real CARE-PD UPDRS-gait labels** (110 subjects, ~2953
-walks, subject-level cross-validation). The honest held-out correlation is **~0.5** —
-far below the synthetic 0.99 and the poster's un-measured >0.90, and exactly the kind
-of number honest validation produces. `python -m parkigait carepd-train`.
+The project is **trained on real CARE-PD UPDRS-gait labels** (110 subjects, ~2953
+walks, subject-level cross-validation). With 25 clinically-grounded 3D gait features
+(real gait speed, trunk flexion, joint ROM, variability, asymmetry) the honest held-
+out correlation is **r ≈ 0.70 (r² ≈ 0.49)**, 0.75 on the largest cohort, and 0.76–0.78
+when predictions are aggregated per subject. Verified leakage-free by a permutation
+control (shuffled r ≈ 0.05) and an independent adversarial audit. It **plateaus at
+~0.70** — the honest ceiling for gait-only prediction, not the poster's un-measured
+>0.90. `python -m parkigait carepd-rich`.
 
 The pipeline does the honest thing on hard inputs: it returns **"inconclusive"** on
 low-quality clips and **"out-of-distribution — unreliable"** when the gait is unlike

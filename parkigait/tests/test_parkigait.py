@@ -178,6 +178,31 @@ def test_smpl_fk_zero_pose_is_rest():
     assert joints[0][1, 0] > 0 > joints[0][2, 0]
 
 
+def test_carepd_rich_features_directional():
+    # a "fast healthy" vs "slow shuffling" synthetic SMPL walk: reduced hip/knee
+    # amplitude + reduced forward translation should read as lower gait speed & ROM.
+    from parkigait.carepd_features import FEATURE_NAMES, rich_features
+    T, fps = 150, 30.0
+    t = np.linspace(0, 6 * np.pi, T)
+
+    def walk(amp, fwd):
+        pose = np.zeros((T, 72))
+        pose[:, 1 * 3] = amp * np.sin(t)
+        pose[:, 2 * 3] = amp * np.sin(t + np.pi)
+        pose[:, 4 * 3] = 0.6 * amp * np.maximum(0, np.sin(t))
+        pose[:, 5 * 3] = 0.6 * amp * np.maximum(0, np.sin(t + np.pi))
+        trans = np.zeros((T, 3))
+        trans[:, 2] = np.linspace(0, fwd, T)
+        return rich_features(pose, trans, fps)
+
+    healthy = walk(0.5, 4.0)
+    slow = walk(0.15, 1.0)
+    assert set(healthy) == set(FEATURE_NAMES)
+    assert all(np.isfinite(v) for v in healthy.values())
+    assert healthy["gait_speed"] > slow["gait_speed"]     # slower when translating less
+    assert healthy["knee_rom"] > slow["knee_rom"]         # reduced ROM when amp lower
+
+
 def test_smpl_fk_projection_and_features():
     from parkigait.gaitfeat import extract_features
     from parkigait.smpl_fk import carepd_record_to_blazepose
