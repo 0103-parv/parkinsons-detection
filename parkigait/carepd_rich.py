@@ -104,6 +104,36 @@ def _models():
     }
 
 
+def evaluate_classify(X, y_bin, groups, n_splits: int = 5):
+    """Detect ABNORMAL gait (UPDRS-gait > 0) — the diagnosis-relevant framing.
+    Subject-level GroupKFold, train-only standardization. Returns AUC + operating
+    point (accuracy/sensitivity/specificity at 0.5). This is a gait-SCREENING number,
+    not a standalone PD diagnosis."""
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import accuracy_score, roc_auc_score
+    from sklearn.model_selection import GroupKFold
+    gkf = GroupKFold(min(n_splits, len(np.unique(groups))))
+    pt, prob, hard = [], [], []
+    for tr, te in gkf.split(X, y_bin, groups):
+        mu, sd = X[tr].mean(0), X[tr].std(0) + 1e-9
+        m = RandomForestClassifier(n_estimators=400, max_depth=8, min_samples_leaf=3,
+                                   class_weight="balanced", random_state=0, n_jobs=-1)
+        m.fit((X[tr] - mu) / sd, y_bin[tr])
+        p = m.predict_proba((X[te] - mu) / sd)[:, 1]
+        prob.extend(p.tolist()); pt.extend(y_bin[te].tolist())
+        hard.extend((p > 0.5).astype(int).tolist())
+    pt, prob, hard = np.asarray(pt), np.asarray(prob), np.asarray(hard)
+    tp = int(((hard == 1) & (pt == 1)).sum()); fn = int(((hard == 0) & (pt == 1)).sum())
+    tn = int(((hard == 0) & (pt == 0)).sum()); fp = int(((hard == 1) & (pt == 0)).sum())
+    return {
+        "auc": float(roc_auc_score(pt, prob)) if len(np.unique(pt)) > 1 else 0.5,
+        "accuracy": float(accuracy_score(pt, hard)),
+        "sensitivity": tp / (tp + fn + 1e-9),
+        "specificity": tn / (tn + fp + 1e-9),
+        "n": int(len(pt)),
+    }
+
+
 def run(root: str = "data/CARE-PD", cohorts=None, permutation_control: bool = True):
     X, y, groups, coh = build_dataset(root, cohorts)
     print(f"CARE-PD rich features: {X.shape[0]} labelled walks, {X.shape[1]} features, "
@@ -136,16 +166,34 @@ def run(root: str = "data/CARE-PD", cohorts=None, permutation_control: bool = Tr
         print(f"  {c:10} r={rc['held_out_pearson_r']:.3f}  r^2={rc['held_out_r2']:.3f}  "
               f"MAE={rc['mae']:.3f}  (baseline {rc['baseline_mae']:.3f}, n={rc['n']})")
 
-    # permutation control: shuffle labels -> r should collapse to ~0 (no leakage)
+    # --- diagnosis framing: detect ABNORMAL gait (UPDRS-gait > 0) ---
+    y_bin = (y > 0).astype(int)
+    clf = evaluate_classify(X, y_bin, groups)
+    print("\nABNORMAL-GAIT DETECTION (UPDRS-gait > 0 vs 0) — the diagnosis-relevant task")
+    print(f"  AUC {clf['auc']:.3f} | accuracy {clf['accuracy']:.3f} | "
+          f"sensitivity {clf['sensitivity']:.3f} | specificity {clf['specificity']:.3f}")
+    print("  per-cohort AUC:", end=" ")
+    for c in (cohorts or UPDRS_COHORTS):
+        m = coh == c
+        if m.sum() < 10 or len(np.unique(y_bin[m])) < 2:
+            continue
+        print(f"{c} {evaluate_classify(X[m], y_bin[m], groups[m])['auc']:.3f}", end="  ")
+    print()
+
+    # permutation controls: shuffle labels -> r ~ 0 and AUC ~ 0.5 (no leakage)
     if permutation_control:
         rng = np.random.default_rng(0)
         y_shuf = y.copy()
         rng.shuffle(y_shuf)
         rp = evaluate(X, y_shuf, groups, fac)
-        print(f"\nPERMUTATION CONTROL (labels shuffled): held-out r = "
-              f"{rp['held_out_pearson_r']:+.3f}  (should be ~0 — confirms no leakage)")
+        yb_shuf = y_bin.copy()
+        rng.shuffle(yb_shuf)
+        cp = evaluate_classify(X, yb_shuf, groups)
+        print(f"\nPERMUTATION CONTROL (labels shuffled): regression r = "
+              f"{rp['held_out_pearson_r']:+.3f} (~0), detection AUC = "
+              f"{cp['auc']:.3f} (~0.5) — confirms no leakage")
 
-    return {"best_model": best[0], "best": best[1]}
+    return {"best_model": best[0], "best": best[1], "detection": clf}
 
 
 if __name__ == "__main__":

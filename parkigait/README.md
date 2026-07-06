@@ -33,7 +33,8 @@ this machine (CARE-PD is gated). The point is a real, honest method.
 | LieQ quantization | **~11× smaller**, ~100% acc retained | small demo model, synthetic data |
 | Control-vs-PD AUC | **~0.86–0.94 (synthetic)** | harder overlapping cohort, **not** clinical |
 | Severity correlation (synthetic) | r ≈ 0.99 | method demo, **not** clinical |
-| **UPDRS correlation (REAL CARE-PD)** | **r ≈ 0.70 / r² ≈ 0.49 pooled; 0.75 best cohort; 0.76–0.78 subject-agg** | real labels, subject-level CV, 25 clinical features — [CAREPD_RESULTS.md](CAREPD_RESULTS.md) |
+| **Abnormal-gait DETECTION (REAL CARE-PD)** | **AUC ≈ 0.86** (0.87 best cohort) | the diagnosis-relevant task; subject-level CV — [CAREPD_RESULTS.md](CAREPD_RESULTS.md) |
+| UPDRS severity correlation (REAL CARE-PD) | r ≈ 0.70 / r² ≈ 0.49 (0.76–0.78 subject-agg) | the harder regression task |
 
 The project is **trained on real CARE-PD UPDRS-gait labels** (110 subjects, ~2953
 walks, subject-level cross-validation). With 25 clinically-grounded 3D gait features

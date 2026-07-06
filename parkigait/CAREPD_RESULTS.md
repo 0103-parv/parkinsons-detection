@@ -10,12 +10,26 @@ python -m parkigait carepd-rich    # rich 25-feature clinical model (best)
 python -m parkigait carepd-train   # simple 7-feature baseline
 ```
 
-## The numbers (measured, subject-level CV, held-out)
+## Diagnosis framing (the number that matters for screening)
+
+"Diagnosis" is a *classification*, not a severity regression: **does this person have
+impaired / parkinsonian gait?** Detecting UPDRS-gait > 0 vs 0, subject-level CV:
+
+| | pooled | PD-GaM | BMCLab | T-SDU-PD | 3DGait |
+|---|---|---|---|---|---|
+| **AUC** | **0.86** | 0.87 | 0.87 | 0.82 | 0.79 |
+
+Pooled: **AUC 0.86, accuracy 79%, sensitivity 79%, specificity 79%** (random forest,
+subject-level CV). Permutation control AUC = 0.51 (≈ chance — no leakage). This is a
+gait-**screening** number (detects parkinsonian gait impairment), NOT a standalone PD
+diagnosis, and AUC ~0.86 is in the useful clinical-screening range. `carepd-rich` prints it.
+
+## Severity regression (the harder task)
 
 Two feature sets, both evaluated identically (subject-level GroupKFold, per-fold
-standardization). The **rich clinical features** (25 biomarkers from the 3D SMPL
-pose + real gait speed from the pelvis translation) substantially beat the simple
-7-feature 2D baseline:
+standardization). Predicting the exact 0–3 severity of *every walk* is much harder
+than detection. The **rich clinical features** (25 biomarkers from the 3D SMPL pose +
+real gait speed from the pelvis translation) beat the simple 7-feature 2D baseline:
 
 | Cohort | Walks | Simple (7 feats) r | **Rich (25 feats) r** | rich r² |
 |---|---|---|---|---|
