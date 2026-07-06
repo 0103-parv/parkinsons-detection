@@ -24,23 +24,25 @@ gait features are computed (cadence, stride-time variability, stride length,
 asymmetry, arm swing, Bächlin freeze index); and a model maps them to P(PD-signs)
 and a 0–4 severity-like score, reported with held-out cross-validation. LieQ
 searches per-layer bit-widths under a memory budget and an accuracy floor,
-verification-gated on *measured* accuracy. Because the CARE-PD dataset is access
--gated and was **not** available to us, the model was trained and evaluated on a
-**synthetic** cohort with known severity and deliberately overlapping,
-confound-bearing subjects; a real-data loader is implemented and ready.
+verification-gated on *measured* accuracy. The model was trained and evaluated on
+the **real CARE-PD dataset** (multi-site 3D-mesh Parkinson's gait; 110 subjects with
+clinician-rated UPDRS-gait labels) using subject-level cross-validation, and, for
+method development, on a synthetic cohort with known severity. CARE-PD SMPL pose
+parameters were turned into joint trajectories via forward kinematics on a canonical
+skeleton (an approximation; the licensed SMPL body model would give exact joints).
 
-**Results (all measured; synthetic-data or system metrics — not clinical).** Pose
-extraction ran at **~27 ms/frame** on CPU (under a 50 ms/frame target) with a
-**~364 MB** memory footprint (under 4 GB). On the pose keypoint graph, STTP
-preserved **99–100%** of body tokens while dropping **100%** of injected
-background tokens; on raw RGB frame patches (a harder, non-separable setting) plain
-connectivity did **not** isolate a small distant subject, indicating STTP needs
-semantic features to prune real pixels. LieQ achieved **~11× compression** with
-**~100% of held-out accuracy retained** on a small demo model. On synthetic data
-the model reached **~0.86–0.94 AUC** for control-vs-PD and **r ≈ 0.99** between
-predicted and true (synthetic) severity; on real out-of-distribution video an
-out-of-distribution guard correctly flagged the input as unreliable rather than
-emitting a confident score.
+**Results (measured; real-data, synthetic, and system metrics as labelled).**
+Trained on the **real CARE-PD dataset** (110 UPDRS-gait-labelled subjects, ~2953
+walks) with subject-level cross-validation, the model reached a held-out Pearson
+correlation with clinician-rated UPDRS-gait of **r ≈ 0.53 pooled and ≈ 0.61 on the
+largest cohort** — a real, honest result far below both the synthetic method-demo
+(r ≈ 0.99) and any ">0.90" claim. Pose extraction ran at **~27 ms/frame** on CPU
+(under a 50 ms/frame target) with a **~364 MB** footprint (under 4 GB). On the pose
+keypoint graph, STTP preserved **99–100%** of body tokens while dropping **100%** of
+injected background tokens; on raw RGB frames plain connectivity did **not** isolate
+a small distant subject. LieQ achieved **~11× compression** with **~100% held-out
+accuracy retained** on a small demo model. An out-of-distribution guard correctly
+flagged unlike-training real video as unreliable rather than scoring it.
 
 **Conclusions.** A private, real-time, on-device Parkinson's-gait *research
 pipeline* is feasible on commodity hardware, and topology-preserving pruning plus
@@ -70,8 +72,10 @@ clinical result would come from.
 | Predicted vs true severity r (**synthetic**) | ~0.99 |
 
 **Honest limits (say these out loud — they make you credible)**
-- Correlation/AUC are on **synthetic** data; there is **no** clinical correlation.
-- **Not** trained on CARE-PD (gated) — the loader is ready, training is not done.
+- The **real** CARE-PD correlation is ~0.5, **not** >0.90; a real correlation is
+  still not a clinical device (see CLINICAL_SAFETY.md).
+- CARE-PD joints are a **canonical-FK approximation**, not the licensed SMPL model.
+- The synthetic r ≈ 0.99 is a method demo, not a clinical or real number.
 - Raw-pixel STTP does not isolate a small distant subject (needs semantic tokens).
 - Real gait is **confounded**: slow/terrain/style walking can read as PD-like.
 - **Not a medical device**; no ASR / adversarial VLM number is claimed (no VLM here).

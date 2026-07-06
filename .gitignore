@@ -7,6 +7,8 @@ parkinsons/data/*.rar
 .venv/
 
 # ParkiGait: large / generated / downloaded artifacts
+data/
+*.pkl
 parkigait/models/*.task
 parkigait/app_static/
 parkigait/app_uploads/

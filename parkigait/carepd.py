@@ -288,10 +288,15 @@ class CAREPDDataset:
     """
 
     def __init__(self, root: str, cohorts: Optional[list[str]] = None,
-                 require_updrs: bool = False):
+                 require_updrs: bool = False, joint_source: str = "smpl"):
         self.root = str(root)
         self.cohorts = tuple(cohorts) if cohorts else None
         self.require_updrs = bool(require_updrs)
+        # "smpl" = exact licensed SMPL model (raises until configured);
+        # "canonical_fk" = licensed-model-free forward kinematics on a canonical
+        # anthropometric skeleton (APPROXIMATE; every PoseSequence is stamped so a
+        # result is never mistaken for exact SMPL). See smpl_fk.py.
+        self.joint_source = str(joint_source)
         self._available, self._reason, self._pickle_files = self._probe(self.root)
 
     # -- availability ------------------------------------------------------- #
@@ -483,17 +488,27 @@ class CAREPDDataset:
                 f"walk {cohort}/{subject_id}/{walk_id}: missing/invalid 'fps'. "
                 "VERIFY vs. dataset card.")
 
-        # Regress SMPL -> (T, 24, 3) joints. This is the ONLY place a real body
-        # model is required; it raises (never fabricates) if unavailable.
-        smpl_joints = _smpl_pose_to_joints(np.asarray(pose), np.asarray(trans),
-                                           np.asarray(rec.get("beta"))
-                                           if rec.get("beta") is not None else None)
-        joints, visibility = _smpl_seq_to_blazepose(smpl_joints)
+        if self.joint_source == "canonical_fk":
+            # Licensed-model-free APPROXIMATION: real pose rotations on a canonical
+            # rest skeleton. Stamped so no result is mistaken for exact SMPL.
+            from parkigait.smpl_fk import carepd_record_to_blazepose
+            joints, visibility = carepd_record_to_blazepose(
+                np.asarray(pose), np.asarray(trans), fps)
+            backend = "carepd-canonical_fk"
+        else:
+            # Regress SMPL -> (T, 24, 3) joints via the licensed model (raises until
+            # configured; never fabricates).
+            smpl_joints = _smpl_pose_to_joints(np.asarray(pose), np.asarray(trans),
+                                               np.asarray(rec.get("beta"))
+                                               if rec.get("beta") is not None else None)
+            joints, visibility = _smpl_seq_to_blazepose(smpl_joints)
+            backend = "carepd-smpl"
         return PoseSequence(
             joints=joints, visibility=visibility, fps=fps,
             source=f"carepd:{cohort}/{subject_id}/{walk_id}",
             meta={
-                "backend": "carepd-smpl",
+                "backend": backend,
+                "joint_source": self.joint_source,
                 "cohort": cohort,
                 "subject_id": subject_id,
                 "walk_id": walk_id,
@@ -512,7 +527,8 @@ class CAREPDDataset:
 # Training entry point (needs real UPDRS labels — raises otherwise)           #
 # --------------------------------------------------------------------------- #
 def train_severity_from_carepd(root: str, *, cohorts: Optional[list[str]] = None,
-                               n_splits: int = 5, seed: int = 0):
+                               n_splits: int = 5, seed: int = 0,
+                               joint_source: str = "smpl"):
     """Fit the severity model on real CARE-PD UPDRS labels with SUBJECT-LEVEL
     splits. Raises :class:`CAREPDNotAvailable` if the data is not present.
 
@@ -527,7 +543,8 @@ def train_severity_from_carepd(root: str, *, cohorts: Optional[list[str]] = None
     folds, fit, and report cross-validated UPDRS metrics on real labels. It
     returns no fabricated numbers.
     """
-    ds = CAREPDDataset(root, cohorts=cohorts, require_updrs=True)
+    ds = CAREPDDataset(root, cohorts=cohorts, require_updrs=True,
+                       joint_source=joint_source)
     if not ds.is_available:
         raise CAREPDNotAvailable(
             _not_available_message(root, ds._reason, clinical=True))
@@ -587,6 +604,8 @@ def train_severity_from_carepd(root: str, *, cohorts: Optional[list[str]] = None
         return np.asarray(xs, dtype=np.float64), np.asarray(ys, dtype=np.float64)
 
     fold_maes: list[float] = []
+    pooled_true: list[float] = []
+    pooled_pred: list[float] = []
     for i in range(k):
         test_subjects = folds[i]
         train_subjects = [s for j, f in enumerate(folds) if j != i for s in f]
@@ -598,6 +617,8 @@ def train_severity_from_carepd(root: str, *, cohorts: Optional[list[str]] = None
         model.fit(x_tr, y_tr)
         pred = model.predict(x_te)
         fold_maes.append(float(np.mean(np.abs(pred - y_te))))
+        pooled_true.extend(y_te.tolist())
+        pooled_pred.extend(pred.tolist())
 
     if not fold_maes:
         raise CAREPDNotAvailable(
@@ -605,18 +626,28 @@ def train_severity_from_carepd(root: str, *, cohorts: Optional[list[str]] = None
                 root, "insufficient labelled data to form non-empty folds",
                 clinical=True))
 
+    # Held-out Pearson correlation (predicted vs true UPDRS-gait), pooled over folds.
+    pt, pp = np.asarray(pooled_true), np.asarray(pooled_pred)
+    pearson = (float(np.corrcoef(pt, pp)[0, 1])
+               if pt.std() > 1e-9 and pp.std() > 1e-9 else 0.0)
+    # baseline: MAE of always predicting the training-mean label
+    mean_mae = float(np.mean(np.abs(pt - pt.mean())))
+
     # Fit a final model on ALL labelled data for downstream use.
     x_all, y_all = _xy(subjects)
     final_model = Ridge(alpha=1.0).fit(x_all, y_all)
 
     return {
         "model": final_model,
-        "calibrated_on": "CARE-PD (real UPDRS_GAIT, subject-level CV)",
+        "calibrated_on": f"CARE-PD (real UPDRS_GAIT, subject-level CV, {joint_source})",
+        "joint_source": joint_source,
         "n_subjects": len(subjects),
         "n_labelled_walks": n_labelled,
         "n_splits": k,
         "cv_mae_updrs_gait": float(np.mean(fold_maes)),
         "cv_mae_per_fold": fold_maes,
+        "held_out_pearson_r": pearson,
+        "baseline_mae_predict_mean": mean_mae,
         "split": "subject-level (no subject in both train and test)",
         "disclaimer": ("RESEARCH PROTOTYPE — NOT A MEDICAL DEVICE. Exploratory "
                        "only; see CLINICAL_SAFETY.md."),

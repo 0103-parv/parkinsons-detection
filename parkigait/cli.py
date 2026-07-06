@@ -85,6 +85,26 @@ def cmd_ablation(args) -> int:
     return 0
 
 
+def cmd_carepd_train(args) -> int:
+    from parkigait.carepd import CAREPDNotAvailable, train_severity_from_carepd
+    cohorts = args.cohorts.split(",") if args.cohorts else None
+    try:
+        r = train_severity_from_carepd(
+            args.root, cohorts=cohorts, joint_source=args.joint_source,
+            n_splits=args.splits, seed=args.seed)
+    except CAREPDNotAvailable as e:
+        print(f"CARE-PD not available:\n{e}")
+        return 1
+    print("\nREAL CARE-PD training (subject-level CV) —", r["calibrated_on"])
+    print(f"  subjects:            {r['n_subjects']}")
+    print(f"  labelled walks:      {r['n_labelled_walks']}")
+    print(f"  held-out Pearson r:  {r['held_out_pearson_r']:.3f}  (predicted vs true UPDRS-gait)")
+    print(f"  CV MAE:              {r['cv_mae_updrs_gait']:.3f}  (baseline predict-mean {r['baseline_mae_predict_mean']:.3f})")
+    print(f"  split:               {r['split']}")
+    print(f"  {r['disclaimer']}")
+    return 0
+
+
 def cmd_serve(args) -> int:
     from parkigait.app import run_server
     run_server(host=args.host, port=args.port)
@@ -145,6 +165,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     ab = sub.add_parser("ablation", help="ablation & robustness study -> ABLATION.md")
     ab.set_defaults(func=cmd_ablation)
+
+    ct = sub.add_parser("carepd-train", help="train on real CARE-PD UPDRS labels (subject-level CV)")
+    ct.add_argument("--root", default="data/CARE-PD")
+    ct.add_argument("--cohorts", default=None, help="comma-separated, e.g. PD-GaM,BMCLab")
+    ct.add_argument("--joint-source", default="canonical_fk", dest="joint_source",
+                    choices=["canonical_fk", "smpl"])
+    ct.add_argument("--splits", type=int, default=5)
+    ct.add_argument("--seed", type=int, default=0)
+    ct.set_defaults(func=cmd_carepd_train)
 
     sv = sub.add_parser("serve", help="run the local web app")
     sv.add_argument("--host", default="127.0.0.1")

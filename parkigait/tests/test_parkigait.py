@@ -165,6 +165,50 @@ def test_cli_selftest():
 
 
 # --------------------------------------------------------------------------- #
+# SMPL forward kinematics (canonical skeleton, licensed-model-free)           #
+# --------------------------------------------------------------------------- #
+def test_smpl_fk_zero_pose_is_rest():
+    from parkigait.smpl_fk import REST_JOINTS, smpl_joints_from_pose
+    # zero axis-angle -> the canonical rest skeleton, re-centred on the pelvis
+    joints = smpl_joints_from_pose(np.zeros((3, 72)))
+    assert joints.shape == (3, 24, 3)
+    expected = REST_JOINTS - REST_JOINTS[0]
+    assert np.allclose(joints[0], expected, atol=1e-6)
+    # left/right hips symmetric about x
+    assert joints[0][1, 0] > 0 > joints[0][2, 0]
+
+
+def test_smpl_fk_projection_and_features():
+    from parkigait.gaitfeat import extract_features
+    from parkigait.smpl_fk import carepd_record_to_blazepose
+    from parkigait.types import PoseSequence
+    # a synthetic "walk": hips + knees oscillate out of phase over time
+    T, fps = 120, 30.0
+    t = np.linspace(0, 4 * np.pi, T)
+    pose = np.zeros((T, 72), dtype=np.float64)
+    pose[:, 1 * 3] = 0.4 * np.sin(t)          # L_hip flex
+    pose[:, 2 * 3] = 0.4 * np.sin(t + np.pi)  # R_hip flex (antiphase)
+    pose[:, 4 * 3] = 0.3 * np.maximum(0, np.sin(t))       # L_knee
+    pose[:, 5 * 3] = 0.3 * np.maximum(0, np.sin(t + np.pi))
+    trans = np.zeros((T, 3))
+    trans[:, 2] = np.linspace(0, 3.0, T)      # walk forward in z
+    j, v = carepd_record_to_blazepose(pose, trans, fps)
+    assert j.shape == (T, 33, 3) and v.shape == (T, 33)
+    assert np.isfinite(j).all()
+    # SMPL-sourced joints (vis>=0.5) are normalized to [0,1]; anchored placeholders
+    # (vis~0.2) may sit slightly outside by a small documented offset.
+    sourced = v[0] >= 0.5
+    xy_sourced = j[:, sourced, :2]
+    assert xy_sourced.min() >= -1e-6 and xy_sourced.max() <= 1 + 1e-6
+    # the FK+projection produced real temporal motion (the ankle moves over the clip)
+    from parkigait.types import joint_index
+    ank_y = j[:, joint_index("LEFT_ANKLE"), 1]
+    assert ank_y.ptp() > 1e-3
+    feats = extract_features(PoseSequence(j, v, fps=fps))  # must not raise
+    assert np.isfinite(feats.as_vector()).all()
+
+
+# --------------------------------------------------------------------------- #
 # ablation / robustness                                                       #
 # --------------------------------------------------------------------------- #
 def test_ablation_background_rejection():

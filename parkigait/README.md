@@ -32,7 +32,13 @@ this machine (CARE-PD is gated). The point is a real, honest method.
 | STTP body recall / background drop | **~1.00 / 1.00** | on the keypoint token-graph |
 | LieQ quantization | **~11× smaller**, ~100% acc retained | small demo model, synthetic data |
 | Control-vs-PD AUC | **~0.86–0.94 (synthetic)** | harder overlapping cohort, **not** clinical |
-| Severity correlation | r ≈ 0.99 **(synthetic)** | method demo, **not** clinical |
+| Severity correlation (synthetic) | r ≈ 0.99 | method demo, **not** clinical |
+| **UPDRS correlation (REAL CARE-PD)** | **r ≈ 0.53 pooled, 0.61 best cohort** | real labels, subject-level CV — see [CAREPD_RESULTS.md](CAREPD_RESULTS.md) |
+
+The project is now **trained on real CARE-PD UPDRS-gait labels** (110 subjects, ~2953
+walks, subject-level cross-validation). The honest held-out correlation is **~0.5** —
+far below the synthetic 0.99 and the poster's un-measured >0.90, and exactly the kind
+of number honest validation produces. `python -m parkigait carepd-train`.
 
 The pipeline does the honest thing on hard inputs: it returns **"inconclusive"** on
 low-quality clips and **"out-of-distribution — unreliable"** when the gait is unlike
