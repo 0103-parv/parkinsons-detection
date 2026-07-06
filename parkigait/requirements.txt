@@ -12,3 +12,4 @@ joblib
 flask
 pillow
 pytest
+reportlab       # one-pager PDF (docs/make_onepager.py)
