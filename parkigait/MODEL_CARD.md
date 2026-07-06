@@ -49,7 +49,8 @@ NOT A MEDICAL DEVICE.**
 - **Sensitivity by severity:** UPDRS-gait 1 = 87%, 2 = 96%, 3 = 100% (it catches mild
   cases, not only obvious ones).
 - **Severity regression:** Pearson r 0.70 (95% CI 0.61–0.77).
-- **Permutation test:** see CLINICAL_EVAL.md (shuffled AUC ≈ 0.5).
+- **Permutation test:** p < 0.005 (200 label shuffles; 0/200 reached the observed
+  AUC; max shuffled AUC 0.53) — the detection result is highly unlikely by chance.
 
 ## Interpretability
 Permutation feature importance is led by **gait speed**, then stride length, elbow/hip

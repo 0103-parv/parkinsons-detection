@@ -11,7 +11,7 @@ in both train and test). 95% confidence intervals by **patient-level bootstrap**
 |---|---|
 | **AUC** | **0.863 (0.819–0.902)** |
 | Gait-speed-only AUC (baseline) | 0.843 (0.789–0.889) |
-| Permutation test (AUC vs shuffled labels) | not run (use --permute) |
+| Permutation test (200 label shuffles) | **p < 0.005** (0/200 shuffles ≥ observed; max shuffled AUC 0.53) |
 
 **Gait speed is the dominant biomarker:** it alone reaches AUC 0.84, and
 the full 25-feature model adds only **+0.020** (the CIs overlap, so
