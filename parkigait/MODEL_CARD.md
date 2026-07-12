@@ -40,8 +40,16 @@ NOT A MEDICAL DEVICE.**
   numbers, checked subject splitting / preprocessing / feature independence, and ruled
   out a cohort-mean confound).
 
-## Quantitative performance (subject-level CV; see CLINICAL_EVAL.md)
-- **Abnormal-gait detection AUC 0.86 (95% CI 0.82–0.90).**
+## Quantitative performance (subject-level CV; see CLINICAL_EVAL.md, CLINICAL_PLUS.md)
+- **Abnormal-gait detection AUC 0.86–0.87** (95% CI 0.82–0.90; calibrated ensemble,
+  Brier 0.15 vs 0.24 base rate).
+- **External validation — leave-one-cohort-out (train 3 sites, test a 4th unseen
+  site): pooled AUC 0.77** (3DGait 0.86, PD-GaM 0.81, BMCLab 0.81, T-SDU-PD 0.74).
+  This is the realistic "new hospital" number and it is stricter than CV.
+- **Severity staging (UPDRS-gait 0–3): quadratic weighted κ 0.62** ("substantial"
+  agreement), exact accuracy 0.66, **95% within one level**; confusion matrix in
+  CLINICAL_PLUS.md.
+- **Test-retest reliability:** ICC(1) 0.63 across 107 patients with repeated walks.
 - Gait-speed-only baseline AUC 0.84 → the full model adds ~0.02 (gait speed is the
   dominant biomarker; other features add a small increment).
 - **Screening operating point (~90% sensitivity):** sensitivity 0.90 (0.85–0.94),

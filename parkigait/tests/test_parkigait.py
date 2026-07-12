@@ -165,6 +165,23 @@ def test_cli_selftest():
 
 
 # --------------------------------------------------------------------------- #
+# clinical_plus / patient_report (data-free bits)                             #
+# --------------------------------------------------------------------------- #
+def test_clinical_plus_test_retest_math():
+    import parkigait.patient_report  # noqa: F401  import smoke
+    from parkigait.clinical_plus import test_retest
+    # two patients with 2 walks each (tight/loose) + one singleton (ignored)
+    proba = np.array([0.10, 0.14, 0.80, 0.86, 0.50])
+    groups = np.array(["a", "a", "b", "b", "c"])
+    r = test_retest(proba, groups)
+    assert r["n_patients"] == 2                       # 'c' singleton excluded
+    assert 0.0 <= r["icc1_consistency"] <= 1.0
+    assert r["mean_within_patient_std"] >= 0.0
+    # two far-apart, internally-tight patients -> high between-patient consistency
+    assert r["icc1_consistency"] > 0.8
+
+
+# --------------------------------------------------------------------------- #
 # clinical-grade stats (bootstrap CI, operating point) — synthetic, no data   #
 # --------------------------------------------------------------------------- #
 def test_clinical_stats():

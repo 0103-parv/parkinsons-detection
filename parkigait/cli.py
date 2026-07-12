@@ -118,6 +118,17 @@ def cmd_clinical_eval(args) -> int:
     return 0
 
 
+def cmd_clinical_plus(args) -> int:
+    from parkigait.clinical_plus import run
+    run(root=args.root)
+    return 0
+
+
+def cmd_patient_report(args) -> int:
+    from parkigait.patient_report import main as pr_main
+    return pr_main(["--root", args.root])
+
+
 def cmd_serve(args) -> int:
     from parkigait.app import run_server
     run_server(host=args.host, port=args.port)
@@ -193,6 +204,15 @@ def build_parser() -> argparse.ArgumentParser:
     cr.add_argument("--root", default="data/CARE-PD")
     cr.add_argument("--cohorts", default=None)
     cr.set_defaults(func=cmd_carepd_rich)
+
+    cp = sub.add_parser("clinical-plus",
+                        help="clinician-grade eval: external validation, QWK, calibration, retest")
+    cp.add_argument("--root", default="data/CARE-PD")
+    cp.set_defaults(func=cmd_clinical_plus)
+
+    pr = sub.add_parser("patient-report", help="per-patient gait panel (cohort percentiles)")
+    pr.add_argument("--root", default="data/CARE-PD")
+    pr.set_defaults(func=cmd_patient_report)
 
     ce = sub.add_parser("clinical-eval",
                         help="clinical-grade eval (CIs, ROC, calibration, importance) -> CLINICAL_EVAL.md")

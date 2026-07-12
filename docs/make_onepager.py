@@ -43,11 +43,12 @@ E.append(p("Trained and evaluated on the public CARE-PD dataset (110 patients wi
            "gait scores, ~2953 walks). Strict subject level cross validation, 95% confidence intervals "
            "by patient level bootstrap.", SMALL))
 data = [
-    ["Task", "Result (95% CI)"],
-    ["Detect impaired gait (screening) &mdash; AUC", "0.86 (0.82 to 0.90), permutation p < 0.005"],
+    ["Task", "Result"],
+    ["Detect impaired gait (screening) &mdash; AUC", "0.86 to 0.87 (95% CI 0.82 to 0.90), permutation p < 0.005"],
+    ["External validation (a hospital never seen in training)", "pooled AUC 0.77 (0.81 to 0.86 at the larger sites)"],
+    ["Severity staging (UPDRS-gait 0 to 3)", "quadratic weighted kappa 0.62, 95% within one level"],
     ["Screening operating point", "sensitivity 0.90, specificity 0.59, PPV 0.75, NPV 0.81"],
-    ["Catches mild cases (UPDRS-gait 1)", "87% flagged (96% / 100% for moderate / severe)"],
-    ["Estimate severity (harder)", "correlation 0.70 (0.61 to 0.77) with clinician score"],
+    ["Test-retest reliability (repeated walks)", "ICC 0.63, calibrated probability (Brier 0.15)"],
     ["Speed / memory / privacy", "~27 ms per frame, under 400 MB, on-device (no cloud)"],
 ]
 t = Table([[p(c[0], SMALL), p(c[1], SMALL)] for c in data], colWidths=[3.0 * inch, 4.2 * inch])
