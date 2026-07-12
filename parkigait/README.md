@@ -27,7 +27,7 @@ this machine (CARE-PD is gated). The point is a real, honest method.
 
 | Metric | Measured value | What it is |
 |---|---|---|
-| MediaPipe pose on real video | **~27 ms/frame** (CPU) | meets the <50 ms edge target, measured |
+| MediaPipe pose on real video | **~27 ms/frame** (CPU, low-res best case; up to ~90 ms on large clips) | varies with resolution; quote what you measure |
 | Peak memory | **~364 MB** | meets the <4 GB edge target, measured |
 | STTP body recall / background drop | **~1.00 / 1.00** | on the keypoint token-graph |
 | LieQ quantization | **~11× smaller**, ~100% acc retained | small demo model, synthetic data |
@@ -67,7 +67,7 @@ python -m parkigait scan path/to/walk.mp4        # scan a REAL walking video (Me
 python -m parkigait serve                        # local web app → http://127.0.0.1:7860
 python -m parkigait eval --report                # measured metrics → RESULTS.md
 python -m parkigait selftest                     # end-to-end smoke test
-python -m pytest parkigait/tests -q              # test suite (10 tests)
+python -m pytest parkigait/tests -q              # test suite (16 tests)
 ```
 
 For a real scan: a few seconds of someone walking, **full body visible, roughly

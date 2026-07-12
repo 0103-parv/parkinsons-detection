@@ -33,7 +33,7 @@ people, 752 features**) at **~0.91**.
 video → MediaPipe skeleton → STTP topology-preserving token pruning → clinical gait
 features → an *exploratory* motor-sign score, plus LieQ mixed-precision quantization,
 an out-of-distribution guard, a web app, an ablation/robustness study, and honest
-docs. It runs on a laptop CPU (~27 ms/frame, ~364 MB). It is a **research prototype,
+docs. It runs on a laptop CPU (~27 to 90 ms/frame depending on clip, ~364 MB). It is a **research prototype,
 not a medical device** — see [`parkigait/HONEST_STATUS.md`](parkigait/HONEST_STATUS.md),
 [`parkigait/CLINICAL_SAFETY.md`](parkigait/CLINICAL_SAFETY.md), and
 [`parkigait/LIMITATIONS.md`](parkigait/LIMITATIONS.md). Start at
