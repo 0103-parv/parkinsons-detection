@@ -60,6 +60,16 @@ NOT A MEDICAL DEVICE.**
 - **Permutation test:** p < 0.005 (200 label shuffles; 0/200 reached the observed
   AUC; max shuffled AUC 0.53) — the detection result is highly unlikely by chance.
 
+## Where the accuracy ceiling is (we checked)
+Gait-only UPDRS prediction has a real ceiling. We stress-tested it: extra-trees,
+tuned histogram gradient boosting, a 5-model soft-voting ensemble, stacking with a
+logistic meta-learner, and feature selection all land at **AUC 0.84–0.87** under
+subject-level CV; the best (0.869, ensemble + top-12 features) is +0.003 over the
+shipped model — within CV noise, not a real gain. So **~0.87 is the ceiling for this
+setup** (25 clinical features, 110 patients, canonical-FK joints). The one lever that
+could move it is **exact SMPL joints** (the licensed body model), which would improve
+the joint accuracy the features are built on; feature/model tweaking will not.
+
 ## Interpretability
 Permutation feature importance is led by **gait speed**, then stride length, elbow/hip
 ROM, and double support — the biomarkers clinicians already use for parkinsonian gait.
